@@ -24,7 +24,7 @@ public class StickyNoteRenderer implements BlockEntityRenderer<StickyNoteBlockEn
     private static final float HALF = 2.5f / 16f;
     private static final float LAYER = 0.003f;
     private static final float TEXT_SCALE = 0.0036f;
-    private static final int MAX_WIDTH = 72;
+    private static final int MAX_WIDTH = 76;
     private final Font font;
 
     public StickyNoteRenderer(BlockEntityRendererProvider.Context ctx) {
@@ -84,8 +84,13 @@ public class StickyNoteRenderer implements BlockEntityRenderer<StickyNoteBlockEn
         int lineH = 10;
         float y = -note.lines().size() * lineH / 2f + 4;
         for (String line : note.lines()) {
-            String l = font.plainSubstrByWidth(line, MAX_WIDTH);
-            font.drawInBatch(l, -font.width(l) / 2f, y, color, false, ps.last().pose(), buffers, Font.DisplayMode.POLYGON_OFFSET, 0, light);
+            int w = font.width(line);
+            float squeeze = w > MAX_WIDTH ? (float) MAX_WIDTH / w : 1f;
+            ps.pushPose();
+            ps.translate(0, y + 4, 0);
+            ps.scale(squeeze, squeeze, 1f);
+            font.drawInBatch(line, -w / 2f, -4, color, false, ps.last().pose(), buffers, Font.DisplayMode.POLYGON_OFFSET, 0, light);
+            ps.popPose();
             y += lineH;
         }
     }

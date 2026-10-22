@@ -8,6 +8,6 @@ NeoForge 1.21.1 mod. Small colored sticky notes players can stick on any block f
 - Dye a placed note to recolor it; glow ink sac makes the text glow, ink sac removes it.
 - Breaking the block drops every note with its text.
 
-![wall](preview/wall.png)
+![notes](preview/realnotes.png)
 
 Build: `./gradlew build` (Java 21) -> `build/libs/noted-0.1.0.jar`.
