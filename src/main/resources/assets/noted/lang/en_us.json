@@ -1,0 +1,9 @@
+{
+  "itemGroup.noted": "Note'd",
+  "block.noted.sticky_note": "Sticky Note",
+  "item.noted.sticky_note.colored": "%s Sticky Note",
+  "screen.noted.notes": "Note'd",
+  "screen.noted.by": "by %s",
+  "screen.noted.tear": "Tear Off",
+  "message.noted.full": "No room for more notes here"
+}

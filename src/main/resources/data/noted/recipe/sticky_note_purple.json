@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "sticky_note_dye",
+  "ingredients": [
+    {
+      "item": "noted:sticky_note"
+    },
+    {
+      "tag": "c:dyes/purple"
+    }
+  ],
+  "result": {
+    "id": "noted:sticky_note",
+    "count": 1,
+    "components": {
+      "noted:color": "purple"
+    }
+  }
+}
