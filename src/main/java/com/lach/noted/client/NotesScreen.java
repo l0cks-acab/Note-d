@@ -7,7 +7,7 @@ import com.lach.noted.net.EditNotePayload;
 import com.lach.noted.net.TearNotePayload;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -15,7 +15,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.DyeColor;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraft.client.input.KeyEvent;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -106,7 +107,7 @@ public class NotesScreen extends Screen {
         if (loaded == null || torn) return;
         List<String> lines = Note.sanitize(current());
         if (lines.equals(loaded.lines())) return;
-        PacketDistributor.sendToServer(new EditNotePayload(pos, index, lines));
+        ClientPacketDistributor.sendToServer(new EditNotePayload(pos, index, lines));
         loaded = loaded.withLines(lines);
     }
 
@@ -123,7 +124,7 @@ public class NotesScreen extends Screen {
     private void tear() {
         if (loaded == null) return;
         torn = true;
-        PacketDistributor.sendToServer(new TearNotePayload(pos, index));
+        ClientPacketDistributor.sendToServer(new TearNotePayload(pos, index));
         onClose();
     }
 
@@ -141,21 +142,21 @@ public class NotesScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(g, mouseX, mouseY, partialTick);
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(g, mouseX, mouseY, partialTick);
         int n = count();
         int rgb = loaded == null ? 0xDDDDDD : loaded.color().getTextureDiffuseColor() & 0xFFFFFF;
         for (int i = Math.min(n - 1, 3); i > 0; i--)
             g.fill(left + i * 3, top + i * 3, left + SIZE + i * 3, top + SIZE + i * 3, 0xFF000000 | darken(rgb, 0.85f - i * 0.1f));
         g.fill(left, top, left + SIZE, top + SIZE, 0xFF000000 | rgb);
         g.fill(left, top, left + SIZE, top + 18, 0x30000000);
-        g.drawCenteredString(font, title, width / 2, top - 14, 0xFFFFFF);
+        g.centeredText(font, title, width / 2, top - 14, 0xFFFFFFFF);
         if (loaded == null) return;
         int tc = ClientHooks.textColor(loaded.color());
-        g.drawString(font, (index + 1) + "/" + n, left + 6, top + 5, tc, false);
+        g.text(font, (index + 1) + "/" + n, left + 6, top + 5, tc, false);
         if (!loaded.author().isEmpty()) {
             Component by = Component.translatable("screen.noted.by", loaded.author());
-            g.drawString(font, by, left + SIZE - 6 - font.width(by), top + 5, tc, false);
+            g.text(font, by, left + SIZE - 6 - font.width(by), top + 5, tc, false);
         }
     }
 
@@ -165,7 +166,8 @@ public class NotesScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int key, int scan, int mods) {
+    public boolean keyPressed(KeyEvent event) {
+        int key = event.key();
         int focused = -1;
         for (int i = 0; i < boxes.length; i++) if (boxes[i] == getFocused()) focused = i;
         if (focused >= 0) {
@@ -187,7 +189,7 @@ public class NotesScreen extends Screen {
                 return true;
             }
         }
-        return super.keyPressed(key, scan, mods);
+        return super.keyPressed(event);
     }
 
     @Override

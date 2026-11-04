@@ -1,12 +1,14 @@
 package com.lach.noted;
 
 import java.util.List;
+import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.block.Block;
 
 public class StickyNoteItem extends BlockItem {
@@ -21,8 +23,8 @@ public class StickyNoteItem extends BlockItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, TooltipContext ctx, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
         for (String line : stack.getOrDefault(Noted.TEXT.get(), List.<String>of()))
-            if (!line.isBlank()) tooltip.add(Component.literal(line).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
+            if (!line.isBlank()) tooltip.accept(Component.literal(line).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
     }
 }

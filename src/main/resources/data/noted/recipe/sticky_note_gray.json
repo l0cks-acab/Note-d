@@ -3,12 +3,8 @@
   "category": "misc",
   "group": "sticky_note_dye",
   "ingredients": [
-    {
-      "item": "noted:sticky_note"
-    },
-    {
-      "tag": "c:dyes/gray"
-    }
+    "noted:sticky_note",
+    "#c:dyes/gray"
   ],
   "result": {
     "id": "noted:sticky_note",

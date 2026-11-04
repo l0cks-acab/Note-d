@@ -2,15 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    {
-      "item": "minecraft:paper"
-    },
-    {
-      "item": "minecraft:paper"
-    },
-    {
-      "tag": "c:slime_balls"
-    }
+    "minecraft:paper",
+    "minecraft:paper",
+    "#c:slime_balls"
   ],
   "result": {
     "id": "noted:sticky_note",

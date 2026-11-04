@@ -12,7 +12,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -51,10 +51,10 @@ public class Noted {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<List<String>>> TEXT = COMPONENTS.registerComponentType("text",
             b -> b.persistent(Codec.STRING.listOf()).networkSynchronized(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list())));
 
-    public static final DeferredBlock<StickyNoteBlock> NOTE = BLOCKS.registerBlock("sticky_note", StickyNoteBlock::new, StickyNoteBlock.PROPERTIES);
+    public static final DeferredBlock<StickyNoteBlock> NOTE = BLOCKS.registerBlock("sticky_note", StickyNoteBlock::new, StickyNoteBlock::properties);
     public static final DeferredItem<StickyNoteItem> NOTE_ITEM = ITEMS.registerItem("sticky_note", p -> new StickyNoteItem(NOTE.get(), p));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<StickyNoteBlockEntity>> NOTE_BE = BLOCK_ENTITIES.register("sticky_note",
-            () -> BlockEntityType.Builder.of(StickyNoteBlockEntity::new, NOTE.get()).build(null));
+            () -> new BlockEntityType<>(StickyNoteBlockEntity::new, NOTE.get()));
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup." + MODID))
@@ -75,8 +75,8 @@ public class Noted {
         LOGGER.info("{} loaded", MODID);
     }
 
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MODID, path);
     }
 
     public static ItemStack noteStack(DyeColor color) {

@@ -6,14 +6,16 @@ import java.util.Comparator;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class StickyNoteBlockEntity extends BlockEntity {
     public static final int MAX_NOTES = 9;
@@ -96,25 +98,24 @@ public class StickyNoteBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        Note.CODEC.listOf().encodeStart(NbtOps.INSTANCE, notes).ifSuccess(t -> tag.put("notes", t));
-        tag.putBoolean("glowing", glowing);
+    protected void saveAdditional(ValueOutput out) {
+        super.saveAdditional(out);
+        out.store("notes", Note.CODEC.listOf(), notes);
+        out.putBoolean("glowing", glowing);
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
+    protected void loadAdditional(ValueInput in) {
+        super.loadAdditional(in);
         notes.clear();
-        if (tag.contains("notes"))
-            Note.CODEC.listOf().parse(NbtOps.INSTANCE, tag.get("notes")).ifSuccess(l -> {
+        in.read("notes", Note.CODEC.listOf()).ifPresent(l -> {
                 for (Note n : l) {
                     int slot = n.slot() >= 0 && n.slot() < MAX_NOTES && indexAt(n.slot()) < 0 ? n.slot() : freeSlot(4);
                     if (slot >= 0) notes.add(n.withSlot(slot));
                 }
             });
         sortNotes();
-        glowing = tag.getBoolean("glowing");
+        glowing = in.getBooleanOr("glowing", false);
     }
 
     @Override
@@ -128,7 +129,7 @@ public class StickyNoteBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void applyImplicitComponents(BlockEntity.DataComponentInput input) {
+    protected void applyImplicitComponents(DataComponentGetter input) {
         notes.clear();
         notes.add(new Note("", input.getOrDefault(Noted.COLOR.get(), net.minecraft.world.item.DyeColor.YELLOW),
                 input.getOrDefault(Noted.TEXT.get(), List.of()), 4));

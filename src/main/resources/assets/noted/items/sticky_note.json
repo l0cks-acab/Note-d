@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "noted:item/sticky_note",
+    "tints": [
+      { "type": "noted:note_color" }
+    ]
+  }
+}

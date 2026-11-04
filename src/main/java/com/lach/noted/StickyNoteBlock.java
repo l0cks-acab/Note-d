@@ -14,10 +14,10 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.DyeItem;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.BlockGetter;
@@ -50,9 +50,10 @@ public class StickyNoteBlock extends FaceAttachedHorizontalDirectionalBlock impl
 
     static final SoundType SOUND = new SoundType(1.0f, 1.4f, SoundEvents.BOOK_PAGE_TURN, SoundEvents.WOOL_STEP,
             SoundEvents.SLIME_BLOCK_PLACE, SoundEvents.WOOL_HIT, SoundEvents.WOOL_FALL);
-    static final BlockBehaviour.Properties PROPERTIES = BlockBehaviour.Properties.of()
-            .mapColor(MapColor.WOOL).noCollission().noOcclusion().instabreak()
-            .sound(SOUND).pushReaction(PushReaction.DESTROY).ignitedByLava();
+    static BlockBehaviour.Properties properties(BlockBehaviour.Properties p) {
+        return p.mapColor(MapColor.WOOL).noCollision().noOcclusion().instabreak()
+                .sound(SOUND).pushReaction(PushReaction.DESTROY).ignitedByLava();
+    }
 
     private static final VoxelShape FLOOR = box(0, 0, 0, 16, 1, 16);
     private static final VoxelShape CEILING = box(0, 15, 0, 16, 16, 16);
@@ -118,55 +119,55 @@ public class StickyNoteBlock extends FaceAttachedHorizontalDirectionalBlock impl
             int slot = 4;
             if (sp.pick(sp.blockInteractionRange(), 0, false) instanceof BlockHitResult hit && hit.getBlockPos().equals(pos))
                 slot = slotAt(state, pos, hit.getLocation());
-            be.set(0, n.withAuthor(sp.getGameProfile().getName()).withSlot(slot));
+            be.set(0, n.withAuthor(sp.getGameProfile().name()).withSlot(slot));
             if (n.isBlank()) PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, 0));
         }
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player,
+    protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player,
                                               InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof StickyNoteBlockEntity be) || be.getNotes().isEmpty())
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
         int clicked = be.indexAt(slotAt(state, pos, hit.getLocation()));
         if (stack.is(Noted.NOTE_ITEM.get())) {
             int slot = be.freeSlot(slotAt(state, pos, hit.getLocation()));
             if (slot < 0) {
-                player.displayClientMessage(Component.translatable("message.noted.full"), true);
-                return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+                player.sendOverlayMessage(Component.translatable("message.noted.full"));
+                return InteractionResult.PASS;
             }
             if (player instanceof ServerPlayer sp) {
-                Note n = Note.fromStack(stack, sp.getGameProfile().getName(), slot);
+                Note n = Note.fromStack(stack, sp.getGameProfile().name(), slot);
                 int index = be.add(n);
                 stack.consume(1, player);
                 if (n.isBlank() && index >= 0) PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, index));
             }
             level.playSound(player, pos, SoundEvents.SLIME_BLOCK_PLACE, SoundSource.BLOCKS, 0.7f, 1.4f);
-            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+            return InteractionResult.SUCCESS;
         }
-        if (stack.getItem() instanceof DyeItem dye) {
-            if (clicked < 0 || be.getNotes().get(clicked).color() == dye.getDyeColor()) return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
-            if (!level.isClientSide) be.set(clicked, be.getNotes().get(clicked).withColor(dye.getDyeColor()));
+        if (stack.get(DataComponents.DYE) instanceof DyeColor dye) {
+            if (clicked < 0 || be.getNotes().get(clicked).color() == dye) return InteractionResult.PASS;
+            if (!level.isClientSide()) be.set(clicked, be.getNotes().get(clicked).withColor(dye));
             level.playSound(player, pos, SoundEvents.DYE_USE, SoundSource.BLOCKS, 1f, 1f);
             stack.consume(1, player);
-            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+            return InteractionResult.SUCCESS;
         }
         if (stack.is(Items.GLOW_INK_SAC) || stack.is(Items.INK_SAC)) {
             boolean glow = stack.is(Items.GLOW_INK_SAC);
-            if (be.isGlowing() == glow) return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
-            if (!level.isClientSide) be.setGlowing(glow);
+            if (be.isGlowing() == glow) return InteractionResult.PASS;
+            if (!level.isClientSide()) be.setGlowing(glow);
             level.playSound(player, pos, glow ? SoundEvents.GLOW_INK_SAC_USE : SoundEvents.INK_SAC_USE, SoundSource.BLOCKS, 1f, 1f);
             stack.consume(1, player);
-            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+            return InteractionResult.SUCCESS;
         }
-        return stack.isEmpty() ? ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION : ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        return stack.isEmpty() ? InteractionResult.TRY_WITH_EMPTY_HAND : InteractionResult.PASS;
     }
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (player instanceof ServerPlayer sp && level.getBlockEntity(pos) instanceof StickyNoteBlockEntity be && !be.getNotes().isEmpty())
             PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, Math.max(0, be.indexAt(slotAt(state, pos, hit.getLocation())))));
-        return InteractionResult.sidedSuccess(level.isClientSide);
+        return InteractionResult.SUCCESS;
     }
 
     @Override
@@ -178,7 +179,7 @@ public class StickyNoteBlock extends FaceAttachedHorizontalDirectionalBlock impl
     }
 
     @Override
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+    protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
         if (level.getBlockEntity(pos) instanceof StickyNoteBlockEntity be && !be.getNotes().isEmpty())
             return Noted.noteStack(be.getNotes().get(0).color());
         return Noted.NOTE_ITEM.toStack();
