@@ -9,11 +9,11 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record EditNotePayload(BlockPos pos, int index, List<String> lines) implements CustomPacketPayload {
+public record EditNotePayload(BlockPos pos, int slot, List<String> lines) implements CustomPacketPayload {
     public static final Type<EditNotePayload> TYPE = new Type<>(Noted.id("edit_note"));
     public static final StreamCodec<ByteBuf, EditNotePayload> STREAM_CODEC = StreamCodec.composite(
             BlockPos.STREAM_CODEC, EditNotePayload::pos,
-            ByteBufCodecs.VAR_INT, EditNotePayload::index,
+            ByteBufCodecs.VAR_INT, EditNotePayload::slot,
             ByteBufCodecs.stringUtf8(Noted.MAX_LINE * 4).apply(ByteBufCodecs.list(Note.LINES)), EditNotePayload::lines,
             EditNotePayload::new);
 

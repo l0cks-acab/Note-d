@@ -3,15 +3,31 @@ package com.lach.noted;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.block.Block;
 
 public class StickyNoteItem extends BlockItem {
+    /** Where the player clicked while placing, so the first note lands in the clicked grid slot. */
+    static final ThreadLocal<Vec3> CLICK = new ThreadLocal<>();
+
     public StickyNoteItem(Block block, Properties props) {
         super(block, props);
+    }
+
+    @Override
+    public InteractionResult place(BlockPlaceContext ctx) {
+        CLICK.set(ctx.getClickLocation());
+        try {
+            return super.place(ctx);
+        } finally {
+            CLICK.remove();
+        }
     }
 
     @Override

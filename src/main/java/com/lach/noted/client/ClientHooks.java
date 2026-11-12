@@ -7,8 +7,8 @@ import net.minecraft.world.item.DyeColor;
 public final class ClientHooks {
     private ClientHooks() {}
 
-    public static void openNotes(BlockPos pos, int index) {
-        Minecraft.getInstance().setScreen(new NotesScreen(pos, index));
+    public static void openNotes(BlockPos pos, int slot) {
+        Minecraft.getInstance().setScreen(new NotesScreen(pos, slot));
     }
 
     public static int textColor(DyeColor bg) {

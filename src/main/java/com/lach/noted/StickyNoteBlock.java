@@ -116,10 +116,12 @@ public class StickyNoteBlock extends FaceAttachedHorizontalDirectionalBlock impl
         if (placer instanceof ServerPlayer sp && level.getBlockEntity(pos) instanceof StickyNoteBlockEntity be && !be.getNotes().isEmpty()) {
             Note n = be.getNotes().get(0);
             int slot = 4;
-            if (sp.pick(sp.blockInteractionRange(), 0, false) instanceof BlockHitResult hit && hit.getBlockPos().equals(pos))
+            Vec3 click = StickyNoteItem.CLICK.get();
+            if (click != null) slot = slotAt(state, pos, click);
+            else if (sp.pick(sp.blockInteractionRange(), 0, false) instanceof BlockHitResult hit && hit.getBlockPos().equals(pos))
                 slot = slotAt(state, pos, hit.getLocation());
             be.set(0, n.withAuthor(sp.getGameProfile().getName()).withSlot(slot));
-            if (n.isBlank()) PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, 0));
+            if (n.isBlank()) PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, slot));
         }
     }
 
@@ -139,7 +141,7 @@ public class StickyNoteBlock extends FaceAttachedHorizontalDirectionalBlock impl
                 Note n = Note.fromStack(stack, sp.getGameProfile().getName(), slot);
                 int index = be.add(n);
                 stack.consume(1, player);
-                if (n.isBlank() && index >= 0) PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, index));
+                if (n.isBlank() && index >= 0) PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, be.getNotes().get(index).slot()));
             }
             level.playSound(player, pos, SoundEvents.SLIME_BLOCK_PLACE, SoundSource.BLOCKS, 0.7f, 1.4f);
             return ItemInteractionResult.sidedSuccess(level.isClientSide);
@@ -165,7 +167,11 @@ public class StickyNoteBlock extends FaceAttachedHorizontalDirectionalBlock impl
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (player instanceof ServerPlayer sp && level.getBlockEntity(pos) instanceof StickyNoteBlockEntity be && !be.getNotes().isEmpty())
-            PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, Math.max(0, be.indexAt(slotAt(state, pos, hit.getLocation())))));
+        {
+            int slot = slotAt(state, pos, hit.getLocation());
+            if (be.indexAt(slot) < 0) slot = be.getNotes().get(0).slot();
+            PacketDistributor.sendToPlayer(sp, new OpenNotesPayload(pos, slot));
+        }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
