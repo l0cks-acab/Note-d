@@ -25,7 +25,8 @@ public class NotesScreen extends Screen {
     private static final int TIMEOUT_TICKS = 40;
 
     private final BlockPos pos;
-    private int index;
+    /** Grid slot of the open note; notes are tracked by slot so other players adding/removing notes can't shift us. */
+    private int slot;
     @Nullable
     private Note loaded;
     private int waited;
@@ -34,10 +35,15 @@ public class NotesScreen extends Screen {
     private Button prev, next;
     private int left, top;
 
-    public NotesScreen(BlockPos pos, int index) {
+    public NotesScreen(BlockPos pos, int slot) {
         super(Component.translatable("screen.noted.notes"));
         this.pos = pos;
-        this.index = index;
+        this.slot = slot;
+    }
+
+    private int index() {
+        StickyNoteBlockEntity be = be();
+        return be == null ? -1 : be.indexAt(slot);
     }
 
     @Nullable
@@ -77,7 +83,8 @@ public class NotesScreen extends Screen {
 
     private void load() {
         StickyNoteBlockEntity be = be();
-        if (be == null || index < 0 || index >= be.getNotes().size()) return;
+        int index = be == null ? -1 : be.indexAt(slot);
+        if (index < 0) return;
         loaded = be.getNotes().get(index);
         for (int i = 0; i < boxes.length; i++) {
             boxes[i].setValue(loaded.lines().get(i));
@@ -93,8 +100,9 @@ public class NotesScreen extends Screen {
 
     private void updateButtons() {
         if (prev == null) return;
+        int index = index();
         prev.active = loaded != null && index > 0;
-        next.active = loaded != null && index < count() - 1;
+        next.active = loaded != null && index >= 0 && index < count() - 1;
     }
 
     private List<String> current() {
@@ -107,15 +115,17 @@ public class NotesScreen extends Screen {
         if (loaded == null || torn) return;
         List<String> lines = Note.sanitize(current());
         if (lines.equals(loaded.lines())) return;
-        ClientPacketDistributor.sendToServer(new EditNotePayload(pos, index, lines));
+        ClientPacketDistributor.sendToServer(new EditNotePayload(pos, slot, lines));
         loaded = loaded.withLines(lines);
     }
 
     private void page(int delta) {
         save();
+        StickyNoteBlockEntity be = be();
+        int index = index();
         int target = index + delta;
-        if (target < 0 || target >= count()) return;
-        index = target;
+        if (be == null || index < 0 || target < 0 || target >= count()) return;
+        slot = be.getNotes().get(target).slot();
         loaded = null;
         load();
         setFocused(boxes[0]);
@@ -123,8 +133,9 @@ public class NotesScreen extends Screen {
 
     private void tear() {
         if (loaded == null) return;
+        save();
         torn = true;
-        ClientPacketDistributor.sendToServer(new TearNotePayload(pos, index));
+        ClientPacketDistributor.sendToServer(new TearNotePayload(pos, slot));
         onClose();
     }
 
@@ -137,6 +148,10 @@ public class NotesScreen extends Screen {
         if (loaded == null) {
             load();
             if (loaded == null && ++waited > TIMEOUT_TICKS) onClose();
+        } else if (index() < 0) {
+            torn = true; // someone else tore it off
+            onClose();
+            return;
         }
         updateButtons();
     }
@@ -153,7 +168,7 @@ public class NotesScreen extends Screen {
         g.centeredText(font, title, width / 2, top - 14, 0xFFFFFFFF);
         if (loaded == null) return;
         int tc = ClientHooks.textColor(loaded.color());
-        g.text(font, (index + 1) + "/" + n, left + 6, top + 5, tc, false);
+        g.text(font, (index() + 1) + "/" + n, left + 6, top + 5, tc, false);
         if (!loaded.author().isEmpty()) {
             Component by = Component.translatable("screen.noted.by", loaded.author());
             g.text(font, by, left + SIZE - 6 - font.width(by), top + 5, tc, false);

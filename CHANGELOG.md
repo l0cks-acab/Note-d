@@ -1,5 +1,16 @@
 # Changelog
 
+## Note'd 0.1.1 / 0.1.1+26.1.2
+
+**Fixes (both versions)**
+- The note screen, edits and Tear Off now track a note by its grid slot instead of its list position. Before, if someone else added or removed a note on the same face while you had the screen open, your edit or tear could hit the wrong note, and a freshly added note could open the wrong page.
+- Tear Off keeps any text you typed but hadn't saved yet.
+- The note screen closes if someone else tears your note off.
+- The first note on a face now lands in the clicked slot when placed by a deployer or other fake player (was always the centre).
+
+**26.1.2**
+- Fixed the Gradle build (toolchain plugin too old for Gradle 9).
+
 ## Note'd 0.1.0+26.1.2
 
 **Minecraft 26.1.2**

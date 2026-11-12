@@ -86,19 +86,21 @@ public class Noted {
     }
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        var r = event.registrar("1");
-        r.playToClient(OpenNotesPayload.TYPE, OpenNotesPayload.STREAM_CODEC, (p, ctx) -> ClientHooks.openNotes(p.pos(), p.index()));
+        var r = event.registrar("2");
+        r.playToClient(OpenNotesPayload.TYPE, OpenNotesPayload.STREAM_CODEC, (p, ctx) -> ClientHooks.openNotes(p.pos(), p.slot()));
         r.playToServer(EditNotePayload.TYPE, EditNotePayload.STREAM_CODEC, (p, ctx) -> {
             StickyNoteBlockEntity be = reachable(ctx.player(), p.pos());
-            if (be == null || p.index() < 0 || p.index() >= be.getNotes().size()) return;
-            Note n = be.getNotes().get(p.index());
-            if (!n.lines().equals(Note.sanitize(p.lines()))) be.set(p.index(), n.withLines(p.lines()));
+            int i = be == null ? -1 : be.indexAt(p.slot());
+            if (i < 0) return;
+            Note n = be.getNotes().get(i);
+            if (!n.lines().equals(Note.sanitize(p.lines()))) be.set(i, n.withLines(p.lines()));
         });
         r.playToServer(TearNotePayload.TYPE, TearNotePayload.STREAM_CODEC, (p, ctx) -> {
             StickyNoteBlockEntity be = reachable(ctx.player(), p.pos());
-            if (be == null || p.index() < 0 || p.index() >= be.getNotes().size()) return;
+            int i = be == null ? -1 : be.indexAt(p.slot());
+            if (i < 0) return;
             Player player = ctx.player();
-            ItemStack stack = be.remove(p.index()).toStack();
+            ItemStack stack = be.remove(i).toStack();
             if (!player.getInventory().add(stack)) player.drop(stack, false);
             player.level().playSound(null, p.pos(), SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 1f, 1.2f);
             if (be.getNotes().isEmpty()) player.level().removeBlock(p.pos(), false);
