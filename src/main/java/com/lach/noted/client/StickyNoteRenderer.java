@@ -51,7 +51,7 @@ public class StickyNoteRenderer implements BlockEntityRenderer<StickyNoteBlockEn
             ps.pushPose();
             ps.translate((slot % 3 - 1) * CELL, (1 - slot / 3) * CELL, 0);
             jitter(ps, slot, be.getBlockPos().hashCode());
-            quad(ps, vc, sprite, note.color().getTextureDiffuseColor(), light, overlay);
+            quad(ps, vc, sprite, Noted.rgb(note.color()), light, overlay);
             text(ps, buffers, note, textLight);
             ps.popPose();
         }
@@ -69,12 +69,12 @@ public class StickyNoteRenderer implements BlockEntityRenderer<StickyNoteBlockEn
 
     private static void quad(PoseStack ps, VertexConsumer vc, TextureAtlasSprite s, int argb, int light, int overlay) {
         PoseStack.Pose pose = ps.last();
-        float u0 = s.getU(2 / 16f), u1 = s.getU(14 / 16f), v0 = s.getV(2 / 16f), v1 = s.getV(14 / 16f);
-        int c = 0xFF000000 | argb;
-        vc.addVertex(pose, -HALF, -HALF, 0).setColor(c).setUv(u0, v1).setOverlay(overlay).setLight(light).setNormal(pose, 0, 0, 1);
-        vc.addVertex(pose, HALF, -HALF, 0).setColor(c).setUv(u1, v1).setOverlay(overlay).setLight(light).setNormal(pose, 0, 0, 1);
-        vc.addVertex(pose, HALF, HALF, 0).setColor(c).setUv(u1, v0).setOverlay(overlay).setLight(light).setNormal(pose, 0, 0, 1);
-        vc.addVertex(pose, -HALF, HALF, 0).setColor(c).setUv(u0, v0).setOverlay(overlay).setLight(light).setNormal(pose, 0, 0, 1);
+        float u0 = s.getU(2), u1 = s.getU(14), v0 = s.getV(2), v1 = s.getV(14);
+        int r = argb >> 16 & 255, g = argb >> 8 & 255, b = argb & 255;
+        vc.vertex(pose.pose(), -HALF, -HALF, 0).color(r, g, b, 255).uv(u0, v1).overlayCoords(overlay).uv2(light).normal(pose.normal(), 0, 0, 1).endVertex();
+        vc.vertex(pose.pose(), HALF, -HALF, 0).color(r, g, b, 255).uv(u1, v1).overlayCoords(overlay).uv2(light).normal(pose.normal(), 0, 0, 1).endVertex();
+        vc.vertex(pose.pose(), HALF, HALF, 0).color(r, g, b, 255).uv(u1, v0).overlayCoords(overlay).uv2(light).normal(pose.normal(), 0, 0, 1).endVertex();
+        vc.vertex(pose.pose(), -HALF, HALF, 0).color(r, g, b, 255).uv(u0, v0).overlayCoords(overlay).uv2(light).normal(pose.normal(), 0, 0, 1).endVertex();
     }
 
     private void text(PoseStack ps, MultiBufferSource buffers, Note note, int light) {

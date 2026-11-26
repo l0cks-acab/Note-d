@@ -7,14 +7,16 @@
       "item": "noted:sticky_note"
     },
     {
-      "tag": "c:dyes/black"
+      "tag": "forge:dyes/blue"
     }
   ],
   "result": {
-    "id": "noted:sticky_note",
+    "item": "noted:sticky_note",
     "count": 1,
-    "components": {
-      "noted:color": "black"
+    "nbt": {
+      "noted": {
+        "color": "blue"
+      }
     }
   }
 }

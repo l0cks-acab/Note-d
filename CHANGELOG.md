@@ -1,5 +1,12 @@
 # Changelog
 
+## Note'd 0.1.1+forge-1.20.1
+
+**Forge 1.20.1**
+- Ported to Minecraft 1.20.1 / Forge 47. Needs Java 17.
+- Same features as 0.1.1: sticky notes on any block face, up to 9 per face, read/edit screen with paging, Tear Off, dye to recolor, glow ink for glowing text, notes drop with their text when broken.
+- Recipes use `forge:slimeballs` and `forge:dyes/*` tags. Note color and text are stored in the item's `noted` NBT tag.
+
 ## Note'd 0.1.1 / 0.1.1+26.1.2
 
 **Fixes (both versions)**

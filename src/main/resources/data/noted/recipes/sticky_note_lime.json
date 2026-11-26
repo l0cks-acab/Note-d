@@ -7,14 +7,16 @@
       "item": "noted:sticky_note"
     },
     {
-      "tag": "c:dyes/light_gray"
+      "tag": "forge:dyes/lime"
     }
   ],
   "result": {
-    "id": "noted:sticky_note",
+    "item": "noted:sticky_note",
     "count": 1,
-    "components": {
-      "noted:color": "light_gray"
+    "nbt": {
+      "noted": {
+        "color": "lime"
+      }
     }
   }
 }

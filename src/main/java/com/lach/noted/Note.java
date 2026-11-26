@@ -22,13 +22,12 @@ public record Note(String author, DyeColor color, List<String> lines, int slot) 
     }
 
     public static Note fromStack(ItemStack stack, String author, int slot) {
-        return new Note(author, stack.getOrDefault(Noted.COLOR.get(), DyeColor.YELLOW),
-                stack.getOrDefault(Noted.TEXT.get(), List.of()), slot);
+        return new Note(author, Noted.getColor(stack), Noted.getText(stack), slot);
     }
 
     public ItemStack toStack() {
         ItemStack s = Noted.noteStack(color);
-        if (!isBlank()) s.set(Noted.TEXT.get(), lines);
+        if (!isBlank()) Noted.setText(s, lines);
         return s;
     }
 

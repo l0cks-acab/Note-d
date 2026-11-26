@@ -1,6 +1,6 @@
 # Note'd
 
-NeoForge 1.21.1 mod (26.1.2 build: `main` branch). Small colored sticky notes players can stick on any block face* (wall, floor, ceiling) to leave messages for each other.
+Forge 1.20.1 build of Note'd (NeoForge 1.21.1: `mc/1.21.1` branch, 26.1.2: `main` branch). Small colored sticky notes players can stick on any block face* (wall, floor, ceiling) to leave messages for each other.
 
 - Craft: 2 paper + 1 slimeball -> 6 notes. Note + dye -> recolor.
 - Up to 9 notes per block face in a 3x3 grid; placed where you click.
@@ -10,6 +10,6 @@ NeoForge 1.21.1 mod (26.1.2 build: `main` branch). Small colored sticky notes pl
 
 ![notes](preview/realnotes.png)
 
-Build: `./gradlew build` (Java 21) -> `build/libs/noted-0.1.1.jar`.
+Build: `./gradlew build` (Java 17) -> `build/libs/noted-0.1.1+forge-1.20.1.jar`.
 
 *should 

@@ -9,11 +9,11 @@
       "item": "minecraft:paper"
     },
     {
-      "tag": "c:slime_balls"
+      "tag": "forge:slimeballs"
     }
   ],
   "result": {
-    "id": "noted:sticky_note",
+    "item": "noted:sticky_note",
     "count": 6
   }
 }

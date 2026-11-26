@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.protocol.Packet;
@@ -96,18 +95,18 @@ public class StickyNoteBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        Note.CODEC.listOf().encodeStart(NbtOps.INSTANCE, notes).ifSuccess(t -> tag.put("notes", t));
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
+        Note.CODEC.listOf().encodeStart(NbtOps.INSTANCE, notes).result().ifPresent(t -> tag.put("notes", t));
         tag.putBoolean("glowing", glowing);
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
+    public void load(CompoundTag tag) {
+        super.load(tag);
         notes.clear();
         if (tag.contains("notes"))
-            Note.CODEC.listOf().parse(NbtOps.INSTANCE, tag.get("notes")).ifSuccess(l -> {
+            Note.CODEC.listOf().parse(NbtOps.INSTANCE, tag.get("notes")).result().ifPresent(l -> {
                 for (Note n : l) {
                     int slot = n.slot() >= 0 && n.slot() < MAX_NOTES && indexAt(n.slot()) < 0 ? n.slot() : freeSlot(4);
                     if (slot >= 0) notes.add(n.withSlot(slot));
@@ -118,19 +117,12 @@ public class StickyNoteBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        return saveWithoutMetadata(registries);
+    public CompoundTag getUpdateTag() {
+        return saveWithoutMetadata();
     }
 
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    protected void applyImplicitComponents(BlockEntity.DataComponentInput input) {
-        notes.clear();
-        notes.add(new Note("", input.getOrDefault(Noted.COLOR.get(), net.minecraft.world.item.DyeColor.YELLOW),
-                input.getOrDefault(Noted.TEXT.get(), List.of()), 4));
     }
 }

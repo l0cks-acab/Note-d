@@ -10,7 +10,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import org.jetbrains.annotations.Nullable;
 
 public class StickyNoteItem extends BlockItem {
     /** Where the player clicked while placing, so the first note lands in the clicked grid slot. */
@@ -32,13 +34,13 @@ public class StickyNoteItem extends BlockItem {
 
     @Override
     public Component getName(ItemStack stack) {
-        DyeColor c = stack.getOrDefault(Noted.COLOR.get(), DyeColor.YELLOW);
+        DyeColor c = Noted.getColor(stack);
         return Component.translatable("item.noted.sticky_note.colored", Component.translatable("color.minecraft." + c.getName()));
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> tooltip, TooltipFlag flag) {
-        for (String line : stack.getOrDefault(Noted.TEXT.get(), List.<String>of()))
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        for (String line : Noted.getText(stack))
             if (!line.isBlank()) tooltip.add(Component.literal(line).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
     }
 }

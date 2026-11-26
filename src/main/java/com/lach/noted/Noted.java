@@ -1,37 +1,28 @@
 package com.lach.noted;
 
-import com.lach.noted.client.ClientHooks;
-import com.lach.noted.net.EditNotePayload;
-import com.lach.noted.net.OpenNotesPayload;
-import com.lach.noted.net.TearNotePayload;
+import com.lach.noted.net.Net;
 import com.mojang.logging.LogUtils;
-import com.mojang.serialization.Codec;
+import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.registries.DeferredBlock;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredItem;
-import net.neoforged.neoforge.registries.DeferredRegister;
-import org.jetbrains.annotations.Nullable;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
 
 @Mod(Noted.MODID)
@@ -40,78 +31,74 @@ public class Noted {
     public static final int MAX_LINE = 20;
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
-    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
-    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MODID);
-    public static final DeferredRegister.DataComponents COMPONENTS = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, MODID);
+    public static final DeferredRegister<net.minecraft.world.level.block.Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MODID);
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<DyeColor>> COLOR = COMPONENTS.registerComponentType("color",
-            b -> b.persistent(DyeColor.CODEC).networkSynchronized(DyeColor.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<List<String>>> TEXT = COMPONENTS.registerComponentType("text",
-            b -> b.persistent(Codec.STRING.listOf()).networkSynchronized(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list())));
-
-    public static final DeferredBlock<StickyNoteBlock> NOTE = BLOCKS.registerBlock("sticky_note", StickyNoteBlock::new, StickyNoteBlock.PROPERTIES);
-    public static final DeferredItem<StickyNoteItem> NOTE_ITEM = ITEMS.registerItem("sticky_note", p -> new StickyNoteItem(NOTE.get(), p));
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<StickyNoteBlockEntity>> NOTE_BE = BLOCK_ENTITIES.register("sticky_note",
+    public static final RegistryObject<StickyNoteBlock> NOTE = BLOCKS.register("sticky_note", () -> new StickyNoteBlock(StickyNoteBlock.PROPERTIES));
+    public static final RegistryObject<StickyNoteItem> NOTE_ITEM = ITEMS.register("sticky_note", () -> new StickyNoteItem(NOTE.get(), new Item.Properties()));
+    @SuppressWarnings("DataFlowIssue")
+    public static final RegistryObject<BlockEntityType<StickyNoteBlockEntity>> NOTE_BE = BLOCK_ENTITIES.register("sticky_note",
             () -> BlockEntityType.Builder.of(StickyNoteBlockEntity::new, NOTE.get()).build(null));
 
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
+    public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup." + MODID))
             .withTabsBefore(CreativeModeTabs.COMBAT)
-            .icon(() -> NOTE_ITEM.get().getDefaultInstance())
+            .icon(() -> new ItemStack(NOTE_ITEM.get()))
             .displayItems((params, out) -> {
                 for (DyeColor c : DyeColor.values()) out.accept(noteStack(c));
             })
             .build());
 
-    public Noted(IEventBus modBus, ModContainer container) {
+    /** Item NBT: {noted: {color: "red", text: ["..", ..]}} (stands in for the 1.21 data components). */
+    public static final String TAG = "noted";
+
+    public Noted() {
+        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
-        COMPONENTS.register(modBus);
         TABS.register(modBus);
-        modBus.addListener(Noted::registerPayloads);
+        Net.register();
         LOGGER.info("{} loaded", MODID);
     }
 
     public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
+        return new ResourceLocation(MODID, path);
     }
 
     public static ItemStack noteStack(DyeColor color) {
         ItemStack s = new ItemStack(NOTE_ITEM.get());
-        s.set(COLOR.get(), color);
+        setColor(s, color);
         return s;
     }
 
-    private static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        var r = event.registrar("2");
-        r.playToClient(OpenNotesPayload.TYPE, OpenNotesPayload.STREAM_CODEC, (p, ctx) -> ClientHooks.openNotes(p.pos(), p.slot()));
-        r.playToServer(EditNotePayload.TYPE, EditNotePayload.STREAM_CODEC, (p, ctx) -> {
-            StickyNoteBlockEntity be = reachable(ctx.player(), p.pos());
-            int i = be == null ? -1 : be.indexAt(p.slot());
-            if (i < 0) return;
-            Note n = be.getNotes().get(i);
-            if (!n.lines().equals(Note.sanitize(p.lines()))) be.set(i, n.withLines(p.lines()));
-        });
-        r.playToServer(TearNotePayload.TYPE, TearNotePayload.STREAM_CODEC, (p, ctx) -> {
-            StickyNoteBlockEntity be = reachable(ctx.player(), p.pos());
-            int i = be == null ? -1 : be.indexAt(p.slot());
-            if (i < 0) return;
-            Player player = ctx.player();
-            ItemStack stack = be.remove(i).toStack();
-            if (!player.getInventory().add(stack)) player.drop(stack, false);
-            player.level().playSound(null, p.pos(), SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 1f, 1.2f);
-            if (be.getNotes().isEmpty()) player.level().removeBlock(p.pos(), false);
-        });
+    public static DyeColor getColor(ItemStack stack) {
+        CompoundTag t = stack.getTagElement(TAG);
+        return t == null ? DyeColor.YELLOW : DyeColor.byName(t.getString("color"), DyeColor.YELLOW);
     }
 
-    @Nullable
-    private static StickyNoteBlockEntity reachable(Player player, BlockPos pos) {
-        if (!(player instanceof ServerPlayer sp) || !sp.mayBuild()) return null;
-        var level = sp.level();
-        if (!level.isLoaded(pos) || sp.distanceToSqr(Vec3.atCenterOf(pos)) > 64) return null;
-        return level.getBlockEntity(pos) instanceof StickyNoteBlockEntity be ? be : null;
+    public static void setColor(ItemStack stack, DyeColor color) {
+        stack.getOrCreateTagElement(TAG).putString("color", color.getName());
+    }
+
+    public static List<String> getText(ItemStack stack) {
+        CompoundTag t = stack.getTagElement(TAG);
+        List<String> out = new ArrayList<>();
+        if (t != null) for (Tag e : t.getList("text", Tag.TAG_STRING)) out.add(e.getAsString());
+        return out;
+    }
+
+    public static void setText(ItemStack stack, List<String> lines) {
+        ListTag l = new ListTag();
+        for (String s : lines) l.add(StringTag.valueOf(s));
+        stack.getOrCreateTagElement(TAG).put("text", l);
+    }
+
+    /** Opaque RGB of a dye's texture tint (1.21's getTextureDiffuseColor). */
+    public static int rgb(DyeColor c) {
+        float[] f = c.getTextureDiffuseColors();
+        return (int) (f[0] * 255) << 16 | (int) (f[1] * 255) << 8 | (int) (f[2] * 255);
     }
 }

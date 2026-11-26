@@ -3,8 +3,7 @@ package com.lach.noted.client;
 import com.lach.noted.Note;
 import com.lach.noted.StickyNoteBlockEntity;
 import com.lach.noted.Noted;
-import com.lach.noted.net.EditNotePayload;
-import com.lach.noted.net.TearNotePayload;
+import com.lach.noted.net.Net;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,7 +14,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.DyeColor;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -61,9 +59,8 @@ public class NotesScreen extends Screen {
         top = (height - SIZE) / 2 - 16;
         for (int i = 0; i < boxes.length; i++) {
             String prevValue = boxes[i] != null ? boxes[i].getValue() : "";
-            EditBox b = new EditBox(font, left + 10, top + 34 + i * 16, SIZE - 20, 12, Component.empty());
+            EditBox b = new NoteEditBox(font, left + 10, top + 34 + i * 16, SIZE - 20, 12, Component.empty());
             b.setBordered(false);
-            b.setTextShadow(false);
             b.setMaxLength(Noted.MAX_LINE);
             b.setValue(prevValue);
             b.setEditable(loaded != null);
@@ -114,7 +111,7 @@ public class NotesScreen extends Screen {
         if (loaded == null || torn) return;
         List<String> lines = Note.sanitize(current());
         if (lines.equals(loaded.lines())) return;
-        PacketDistributor.sendToServer(new EditNotePayload(pos, slot, lines));
+        Net.sendToServer(new Net.EditNote(pos, slot, lines));
         loaded = loaded.withLines(lines);
     }
 
@@ -134,7 +131,7 @@ public class NotesScreen extends Screen {
         if (loaded == null) return;
         save();
         torn = true;
-        PacketDistributor.sendToServer(new TearNotePayload(pos, slot));
+        Net.sendToServer(new Net.TearNote(pos, slot));
         onClose();
     }
 
@@ -156,10 +153,15 @@ public class NotesScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(g, mouseX, mouseY, partialTick);
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        renderBackground(g);
+        renderNote(g);
+        super.render(g, mouseX, mouseY, partialTick);
+    }
+
+    private void renderNote(GuiGraphics g) {
         int n = count();
-        int rgb = loaded == null ? 0xDDDDDD : loaded.color().getTextureDiffuseColor() & 0xFFFFFF;
+        int rgb = loaded == null ? 0xDDDDDD : Noted.rgb(loaded.color());
         for (int i = Math.min(n - 1, 3); i > 0; i--)
             g.fill(left + i * 3, top + i * 3, left + SIZE + i * 3, top + SIZE + i * 3, 0xFF000000 | darken(rgb, 0.85f - i * 0.1f));
         g.fill(left, top, left + SIZE, top + SIZE, 0xFF000000 | rgb);
